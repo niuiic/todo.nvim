@@ -1,0 +1,3 @@
+- [ ] (t1:t2,t3){1}: do someting
+- [ ] (t2){2}: do someting
+- [ ] (t3){3}: do someting
