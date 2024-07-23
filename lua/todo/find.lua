@@ -1,6 +1,8 @@
 local static = require("todo.static")
 local core = require("core")
 
+---@param path string
+---@param on_exit fun(ok: boolean, data: table | string)
 local find = function(path, on_exit)
 	local ok = true
 	local output = ""

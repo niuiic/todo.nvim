@@ -1,3 +1,0 @@
-local highlight = function()
-
-end
