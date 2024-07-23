@@ -1,16 +1,17 @@
+local static = require("todo.static")
 local core = require("core")
 
-local find = function(script, path, rg_pattern, parse_pattern, groups, on_exit)
+local find = function(path, on_exit)
 	local ok = true
 	local output = ""
 	local err = ""
 
 	core.job.spawn("python", {
-		script,
+		static.config.plugin_dir .. "/find.py",
 		path,
-		rg_pattern,
-		parse_pattern,
-		groups,
+		static.config.rg_pattern,
+		static.config.parse_pattern,
+		static.config.groups,
 	}, {}, function()
 		if ok then
 			on_exit(ok, vim.json.decode(output))
