@@ -17,8 +17,8 @@ local config = {
 			return {
 				status = status_map[status],
 				id = id,
-				dependencies = dependencies and vim.split(dependencies, ",") or nil,
-				tags = tags,
+				dependencies = dependencies and vim.split(dependencies, ",") or {},
+				tags = tags and vim.split(tags, ",") or {},
 				content = content,
 			}
 		end
