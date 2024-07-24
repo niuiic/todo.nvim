@@ -29,7 +29,7 @@ local function find(path, rg_pattern, search_file)
 					local lnum, text = string.match(line, pattern)
 					if lnum ~= nil then
 						local todo = static.config.parse(text)
-						if todo then
+						if type(todo) == "table" then
 							todo.path = path
 							todo.lnum = tonumber(lnum)
 							todo.text = text
@@ -43,7 +43,7 @@ local function find(path, rg_pattern, search_file)
 					local file, lnum, text = string.match(line, pattern)
 					if file ~= nil then
 						local todo = static.config.parse(text)
-						if todo then
+						if type(todo) == "table" then
 							todo.path = file
 							todo.lnum = tonumber(lnum)
 							todo.text = text

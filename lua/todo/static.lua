@@ -1,7 +1,5 @@
 local config = {
-	plugin_dir = vim.fn.stdpath("data") .. "/lazy/todo.nvim",
 	rg_pattern = [[\[.*\] \(.*\)\{.*\}: .*]],
-	parse_pattern = [[.*\[([x\s])\] \(([^:}]+):?([^}]+)?\){([^\(\)]+)}: (.*)]],
 	parse = function(text)
 		local status, id, dependencies, tags, content =
 			string.match(text, ".*%[([vbwx%s])%] %(([^:]+):([^%)]+)%){([^{}]+)}: (.*)")
@@ -25,7 +23,6 @@ local config = {
 			}
 		end
 	end,
-	groups = "status,id,dependencies,tags,content",
 }
 
 return { config = config }
