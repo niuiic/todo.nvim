@@ -3,12 +3,93 @@ local find = require("todo.find")
 local search = require("todo.search")
 local core = require("core")
 
-local function hello()
-	find("/home/niuiic/Documents/projects/todo.nvim/test/task.md", static.config.rg_pattern, true):thenCall(
-		function(res)
-			print("DEBUGPRINT[1]: init.lua:8: res=" .. vim.inspect(res))
-		end
-	)
+-- ~ setup
+local function setup(new_config)
+	static.config = vim.tbl_deep_extend("force", static.config, new_config or {})
 end
 
-hello()
+local on_err = function(err)
+	vim.notify(err, vim.log.levels.ERROR, {
+		title = "todo.nvim",
+	})
+end
+
+-- ~ search_all
+---@param filter (fun(todo: todo.Todo): boolean) | nil
+local function search_all(filter)
+	find(static.config.root_dir(), static.config.rg_pattern, false, function(todos)
+		local items = {}
+		core.lua.table.each(todos, function(_, todo)
+			if filter and filter(todo) == false then
+				return
+			end
+			table.insert(items, {
+				label = todo.content,
+				lnum = todo.lnum,
+				path = todo.path,
+			})
+		end)
+
+		if #items == 0 then
+			vim.notify("no todo found", vim.log.levels.INFO, {
+				title = "todo.nvim",
+			})
+			return
+		end
+		search.telescope_search(items)
+	end, on_err)
+end
+
+-- ~ search_dependencies
+---@param filter (fun(todo: todo.Todo): boolean) | nil
+local search_dependencies = function(filter)
+	local lnum = vim.api.nvim_win_get_cursor(0)[1]
+	local line = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1]
+	local todo = static.config.parse(line)
+	if not todo then
+		vim.notify("not a valid todo", vim.log.levels.WARN, {
+			title = "todo.nvim",
+		})
+		return
+	end
+	if #todo.dependencies == 0 then
+		vim.notify("no dependency found", vim.log.levels.INFO, {
+			title = "todo.nvim",
+		})
+		return
+	end
+
+	find(static.config.root_dir(), static.config.rg_pattern, false, function(todos)
+		local items = {}
+		core.lua.list.each(todo.dependencies, function(dep)
+			local target = todos[dep]
+			if not target then
+				return
+			end
+			if filter and filter(target) == false then
+				return
+			end
+
+			table.insert(items, {
+				label = target.content,
+				lnum = target.lnum,
+				path = target.path,
+			})
+		end)
+
+		if #items == 0 then
+			vim.notify("no dependency found", vim.log.levels.INFO, {
+				title = "todo.nvim",
+			})
+			return
+		end
+
+		search.telescope_search(items)
+	end, on_err)
+end
+
+return {
+	setup = setup,
+	search_all = search_all,
+	search_dependencies = search_dependencies,
+}

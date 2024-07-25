@@ -1,19 +1,19 @@
 local core = require("core")
 
----@class todo.SearchItem
+---@class todo.TelescopeSearchItem
 ---@field label string
 ---@field path string
 ---@field lnum number
 
-local get_buf_list = function()
+local function get_buf_list()
 	return core.lua.list.filter(vim.api.nvim_list_bufs(), function(bufnr)
 		return vim.api.nvim_buf_is_valid(bufnr) and vim.api.nvim_buf_is_loaded(bufnr)
 	end)
 end
 
----@param items todo.SearchItem[]
+---@param items todo.TelescopeSearchItem[]
 ---@param opts table | nil
-local search = function(items, opts)
+local function telescope_search(items, opts)
 	local pickers = require("telescope.pickers")
 	local finders = require("telescope.finders")
 	local conf = require("telescope.config").values
@@ -104,4 +104,4 @@ local search = function(items, opts)
 		:find()
 end
 
-return search
+return { telescope_search = telescope_search }
