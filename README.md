@@ -60,14 +60,11 @@ local config = {
 		return core.file.root_path()
 	end,
 	---@type string
-	rg_pattern = [[\[.*\] \(.*\)\{.*\}: .*]],
+	rg_pattern = [[\[.+\] \(.+\)\{?.*\}?: .*]],
 	---@type fun(text: string): todo.Todo | nil
 	parse = function(text)
 		local status, id, dependencies, tags, content =
-			string.match(text, ".*%[([vbwx%s])%] %(([^:]+):([^%)]+)%){([^{}]+)}: (.*)")
-		if status == nil then
-			status, id, tags, content = string.match(text, ".*%[([vbwx%s])%] %(([^:]+)%){([^{}]+)}: (.*)")
-		end
+			string.match(text, "^.*%[([vbwx%s])%] %(([^:]+):?([^%)]*)%){?([^{}]*)}?: (.*)$")
 		if status ~= nil then
 			local status_map = {
 				[" "] = "TODO",
@@ -104,16 +101,18 @@ local config = {
 		local badges = {
 			{ todo.id, "TodoId" },
 			{ "" .. todo.status .. "", "TodoStatus" },
-			tags ~= "" and { tags, "TodoTag" } or nil,
-			dependencies ~= "" and { dependencies, "TodoDependency" } or nil,
+			tags ~= "" and { tags, "TodoTag" } or "null",
+			dependencies ~= "" and { dependencies, "TodoDependency" } or "null",
 		}
 
 		local result = {}
 		core.lua.list.each(badges, function(badge)
-			table.insert(result, roundStart)
-			table.insert(result, badge)
-			table.insert(result, roundEnd)
-			table.insert(result, space)
+			if badge ~= "null" then
+				table.insert(result, roundStart)
+				table.insert(result, badge)
+				table.insert(result, roundEnd)
+				table.insert(result, space)
+			end
 		end)
 		return result
 	end,
