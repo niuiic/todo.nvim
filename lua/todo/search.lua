@@ -71,11 +71,8 @@ local function telescope_search(items, opts)
 						0,
 						-1
 					)
-					ui.set_extmark(
-						self.state.bufnr,
-						target.lnum > offset and target.lnum - offset or target.lnum,
-						target.todo
-					)
+					print(vim.inspect(target.lnum), offset)
+					ui.set_extmark(self.state.bufnr, target.lnum >= offset and offset + 1 or target.lnum, target.todo)
 				end,
 			}),
 			attach_mappings = function(prompt_bufnr)
