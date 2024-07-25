@@ -41,9 +41,9 @@ local function search_all(filter)
 	end, on_err)
 end
 
--- ~ search_dependencies
+-- ~ search_upstream
 ---@param filter (fun(todo: todo.Todo): boolean) | nil
-local search_dependencies = function(filter)
+local search_upstream = function(filter)
 	local lnum = vim.api.nvim_win_get_cursor(0)[1]
 	local line = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1]
 	local todo = static.config.parse(line)
@@ -54,7 +54,7 @@ local search_dependencies = function(filter)
 		return
 	end
 	if #todo.dependencies == 0 then
-		vim.notify("no dependency found", vim.log.levels.INFO, {
+		vim.notify("no upstream todo found", vim.log.levels.INFO, {
 			title = "todo.nvim",
 		})
 		return
@@ -80,7 +80,51 @@ local search_dependencies = function(filter)
 		end)
 
 		if #items == 0 then
-			vim.notify("no dependency found", vim.log.levels.INFO, {
+			vim.notify("no upstream todo found", vim.log.levels.INFO, {
+				title = "todo.nvim",
+			})
+			return
+		end
+
+		search.telescope_search(items)
+	end, on_err)
+end
+
+-- ~ search_downstream
+---@param filter (fun(todo: todo.Todo): boolean) | nil
+local search_downstream = function(filter)
+	local lnum = vim.api.nvim_win_get_cursor(0)[1]
+	local line = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1]
+	local todo = static.config.parse(line)
+	if not todo then
+		vim.notify("not a valid todo", vim.log.levels.WARN, {
+			title = "todo.nvim",
+		})
+		return
+	end
+
+	find(static.config.root_dir(), static.config.rg_pattern, false, function(todos)
+		local items = {}
+		core.lua.table.each(todos, function(_, x)
+			if not core.lua.list.includes(x.dependencies, function(y)
+				return y == todo.id
+			end) then
+				return
+			end
+			if filter and filter(x) == false then
+				return
+			end
+
+			table.insert(items, {
+				label = x.content,
+				lnum = x.lnum,
+				path = x.path,
+				todo = x,
+			})
+		end)
+
+		if #items == 0 then
+			vim.notify("no downstream todo found", vim.log.levels.INFO, {
 				title = "todo.nvim",
 			})
 			return
@@ -93,5 +137,6 @@ end
 return {
 	setup = setup,
 	search_all = search_all,
-	search_dependencies = search_dependencies,
+	search_upstream = search_upstream,
+	search_downstream = search_downstream,
 }
