@@ -27,6 +27,7 @@ local function search_all(filter)
 				label = todo.content,
 				lnum = todo.lnum,
 				path = todo.path,
+				todo = todo,
 			})
 		end)
 
@@ -74,6 +75,7 @@ local search_dependencies = function(filter)
 				label = target.content,
 				lnum = target.lnum,
 				path = target.path,
+				todo = target,
 			})
 		end)
 

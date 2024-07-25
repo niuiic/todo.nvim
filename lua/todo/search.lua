@@ -1,11 +1,13 @@
 local core = require("core")
+local ui = require("todo.ui")
 
 ---@class todo.TelescopeSearchItem
 ---@field label string
 ---@field path string
 ---@field lnum number
+---@field todo todo.Todo
 
-local function get_buf_list()
+local function get_bufnr_list()
 	return core.lua.list.filter(vim.api.nvim_list_bufs(), function(bufnr)
 		return vim.api.nvim_buf_is_valid(bufnr) and vim.api.nvim_buf_is_loaded(bufnr)
 	end)
@@ -24,7 +26,7 @@ local function telescope_search(items, opts)
 	opts = opts or {}
 
 	local bufs = {}
-	core.lua.list.each(get_buf_list(), function(bufnr)
+	core.lua.list.each(get_bufnr_list(), function(bufnr)
 		local file = vim.api.nvim_buf_get_name(bufnr)
 		if not file then
 			return
@@ -41,12 +43,7 @@ local function telescope_search(items, opts)
 			sorter = conf.generic_sorter(opts),
 			previewer = previewers.new_buffer_previewer({
 				define_preview = function(self, entry)
-					local target = core.lua.list.find(items, function(x)
-						return x.label == entry[1]
-					end)
-					if not target then
-						return
-					end
+					local target = items[entry.index]
 
 					local height = vim.api.nvim_win_get_height(self.state.winid)
 					local offset = math.floor(height / 2)
@@ -73,6 +70,11 @@ local function telescope_search(items, opts)
 						target.lnum - start_line - 1,
 						0,
 						-1
+					)
+					ui.set_extmark(
+						self.state.bufnr,
+						target.lnum > offset and target.lnum - offset or target.lnum,
+						target.todo
 					)
 				end,
 			}),
