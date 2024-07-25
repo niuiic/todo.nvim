@@ -119,3 +119,35 @@ local config = {
 	end,
 }
 ```
+
+- default hl
+
+```lua
+local function set_hl()
+	local bg = vim.api.nvim_get_hl(0, { name = "CursorLine" }).bg
+
+	vim.api.nvim_set_hl(0, "TodoId", {
+		fg = "#E0AF68",
+		bg = bg,
+		italic = true,
+	})
+	vim.api.nvim_set_hl(0, "TodoStatus", {
+		fg = "#0DB9D7",
+		bg = bg,
+		italic = true,
+	})
+	vim.api.nvim_set_hl(0, "TodoTag", {
+		fg = "#00FFCC",
+		bg = bg,
+		italic = true,
+	})
+	vim.api.nvim_set_hl(0, "TodoDependency", {
+		fg = "#FF06C1",
+		bg = bg,
+		italic = true,
+	})
+	vim.api.nvim_set_hl(0, "TodoRound", {
+		fg = bg,
+	})
+end
+```
