@@ -39,6 +39,7 @@ local config = {
 			}
 		end
 	end,
+	---@type fun(todo: todo.Todo): [string, string][]
 	badges = function(todo)
 		local core = require("core")
 
