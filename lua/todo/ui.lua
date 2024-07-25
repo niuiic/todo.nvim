@@ -32,7 +32,6 @@ end
 ---@param lnum number
 ---@param todo todo.Todo
 local function set_extmark(bufnr, lnum, todo)
-	vim.api.nvim_buf_clear_namespace(bufnr, static.ns_id, lnum - 1, lnum)
 	vim.api.nvim_buf_set_extmark(bufnr, static.ns_id, lnum - 1, 0, {
 		virt_lines = {
 			static.config.badges(todo),
