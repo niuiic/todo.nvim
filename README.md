@@ -14,15 +14,19 @@ Simple but powerful todo manager based on text.
 <img src="https://github.com/niuiic/assets/blob/main/todo.nvim/decorate.png" />
 
 - features
+  - get todo under cursor
+    - `require("todo").get_cur_todo`
+    - `@return todo.Todo | nil`
   - search all todos
     - `require("todo").search_all`
-    - `@param filter (fun(todo: todo.Todo): boolean) | nil`
+    - `@param map_items (fun(items: todo.TelescopeSearchItem[]): todo.TelescopeSearchItem[]) | nil`
+    - do filter, sort, etc with `map_items`
   - search upstream todos
     - `require("todo").search_upstream`
-    - `@param filter (fun(todo: todo.Todo): boolean) | nil`
+    - `@param map_items (fun(items: todo.TelescopeSearchItem[]): todo.TelescopeSearchItem[]) | nil`
   - search downstream todos
     - `require("todo").search_downstream`
-    - `@param filter (fun(todo: todo.Todo): boolean) | nil`
+    - `@param map_items (fun(items: todo.TelescopeSearchItem[]): todo.TelescopeSearchItem[]) | nil`
   - custom decorate
   - custom parser
 - default format: `[status] (id:dependencies){tags}: content`
@@ -48,6 +52,14 @@ Simple but powerful todo manager based on text.
 ---@field dependencies string[]
 ---@field tags string[]
 ---@field content string
+```
+
+- class TelescopeSearchItem
+
+```lua
+---@class todo.TelescopeSearchItem
+---@field label string
+---@field todo todo.Todo
 ```
 
 - default config

@@ -3,8 +3,6 @@ local ui = require("todo.ui")
 
 ---@class todo.TelescopeSearchItem
 ---@field label string
----@field path string
----@field lnum number
 ---@field todo todo.Todo
 
 local function get_bufnr_list()
@@ -48,17 +46,17 @@ local function telescope_search(items, opts)
 					local height = vim.api.nvim_win_get_height(self.state.winid)
 					local offset = math.floor(height / 2)
 					local start_line
-					start_line = target.lnum - offset
+					start_line = target.todo.lnum - offset
 					if start_line < 0 then
 						start_line = 0
 					end
 					local end_line = start_line + height
 
-					local lines = vim.fn.readfile(target.path)
+					local lines = vim.fn.readfile(target.todo.path)
 					lines = core.lua.list.filter(lines, function(_, i)
 						return i >= start_line and i <= end_line
 					end)
-					local filetype = vim.filetype.match({ filename = target.path })
+					local filetype = vim.filetype.match({ filename = target.todo.path })
 					vim.api.nvim_set_option_value("filetype", filetype, {
 						buf = self.state.bufnr,
 					})
@@ -67,12 +65,16 @@ local function telescope_search(items, opts)
 						self.state.bufnr,
 						0,
 						"TelescopeSelection",
-						target.lnum - start_line - 1,
+						target.todo.lnum - start_line - 1,
 						0,
 						-1
 					)
-					print(vim.inspect(target.lnum), offset)
-					ui.set_extmark(self.state.bufnr, target.lnum >= offset and offset + 1 or target.lnum, target.todo)
+					print(vim.inspect(target.todo.lnum), offset)
+					ui.set_extmark(
+						self.state.bufnr,
+						target.todo.lnum >= offset and offset + 1 or target.todo.lnum,
+						target.todo
+					)
 				end,
 			}),
 			attach_mappings = function(prompt_bufnr)
