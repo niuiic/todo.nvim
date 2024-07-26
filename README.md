@@ -100,7 +100,7 @@ local config = {
 
 		local badges = {
 			{ todo.id, "TodoId" },
-			{ "" .. todo.status .. "", "TodoStatus" },
+			{ todo.status, "TodoStatus" },
 			{ tags, "TodoTag" },
 			{ dependencies, "TodoDependency" },
 		}
