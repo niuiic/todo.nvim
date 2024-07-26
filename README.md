@@ -31,7 +31,7 @@ Simple but powerful todo manager based on text.
   - custom parser
 - default format: `[status] (id:dependencies){tags}: content`
   - `dependencies` and `tags` are separated with `,`.
-  - `tags` is optional.
+  - `tags` is optional, which may be used to indicate importance, urgency, type, etc.
   - `status` map
     - " " = "TODO"
     - x = "DONE"
