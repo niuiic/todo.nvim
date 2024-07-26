@@ -101,13 +101,13 @@ local config = {
 		local badges = {
 			{ todo.id, "TodoId" },
 			{ "" .. todo.status .. "", "TodoStatus" },
-			tags ~= "" and { tags, "TodoTag" } or {},
-			dependencies ~= "" and { dependencies, "TodoDependency" } or {},
+			{ tags, "TodoTag" },
+			{ dependencies, "TodoDependency" },
 		}
 
 		local result = {}
 		core.lua.list.each(badges, function(badge)
-			if #badge ~= 0 then
+			if badge[1] ~= "" then
 				table.insert(result, roundStart)
 				table.insert(result, badge)
 				table.insert(result, roundEnd)
