@@ -45,12 +45,14 @@ end
 M._toggle_state_with_sign = function()
 	local lnum = vim.api.nvim_win_get_cursor(0)[1]
 	local bufnr = vim.api.nvim_get_current_buf()
+	local file_path = vim.api.nvim_buf_get_name(bufnr)
 	local signs = M._get_signs(vim.api.nvim_buf_get_name(0)) or {}
 
 	if not signs[tostring(lnum)] then
 		M._place_sign(bufnr, lnum)
 	else
 		vim.fn.sign_unplace(M._sign_group, { id = signs[tostring(lnum)] })
+		M._signs[file_path][tostring(lnum)] = nil
 	end
 end
 
