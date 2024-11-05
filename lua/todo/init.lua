@@ -1,144 +1,159 @@
-local static = require("todo.static")
-local find = require("todo.find")
-local search = require("todo.search")
-local core = require("core")
+local M = {
+	_ns_id = vim.api.nvim_create_namespace("todo"),
+	_id_count = 0,
+	_sign_group = "TodoSigns",
+	_sign_name = "TodoSign",
+	---@type {[string]: {[string]: unknown}}
+	_signs = {},
+}
 
--- ~ setup
-local function setup(new_config)
-	static.config = vim.tbl_deep_extend("force", static.config, new_config or {})
-end
+M.init = function()
+	vim.fn.sign_define(M._sign_name, {
+		text = "✓",
+		texthl = "LineNr",
+	})
 
-local on_err = function(err)
-	vim.notify(err, vim.log.levels.ERROR, {
-		title = "todo.nvim",
+	vim.api.nvim_create_autocmd("BufWritePost", {
+		callback = function(args)
+			local file_path = vim.api.nvim_buf_get_name(args.buf)
+			local signs = M._get_signs(file_path)
+			M._signs[file_path] = signs and signs or nil
+		end,
+	})
+
+	vim.api.nvim_create_autocmd("BufEnter", {
+		callback = function(args)
+			local file_path = vim.api.nvim_buf_get_name(args.buf)
+			local signs = M._signs[file_path]
+			if not signs then
+				return
+			end
+
+			for lnum, _ in pairs(signs) do
+				M._place_sign(args.buf, lnum)
+			end
+		end,
 	})
 end
 
--- ~ get_todo
----@return todo.Todo | nil
-local function get_cur_todo()
+M.toggle_state = function()
+	if not M._toggle_state_with_text() then
+		M._toggle_state_with_sign()
+	end
+end
+
+M._toggle_state_with_sign = function()
+	local lnum = vim.api.nvim_win_get_cursor(0)[1]
+	local bufnr = vim.api.nvim_get_current_buf()
+	local signs = M._get_signs(vim.api.nvim_buf_get_name(0)) or {}
+
+	if not signs[tostring(lnum)] then
+		M._place_sign(bufnr, lnum)
+	else
+		vim.fn.sign_unplace(M._sign_group, { id = signs[tostring(lnum)] })
+	end
+end
+
+M._place_sign = function(bufnr, lnum)
+	M._id_count = M._id_count + 1
+	vim.fn.sign_place(M._id_count, M._sign_group, M._sign_name, bufnr, {
+		lnum = lnum,
+		priority = 10,
+	})
+	local file_path = vim.api.nvim_buf_get_name(bufnr)
+	if not M._signs[file_path] then
+		M._signs[file_path] = {}
+	end
+	M._signs[file_path][tostring(lnum)] = true
+end
+
+M._get_signs = function(file_path)
+	local signs = (vim.fn.sign_getplaced(file_path, {
+		group = M._sign_group,
+	})[1] or {}).signs
+
+	if not signs then
+		return
+	end
+
+	local results = {}
+	for _, sign in ipairs(signs) do
+		if sign.name == M._sign_name then
+			results[tostring(sign.lnum)] = sign.id
+		end
+	end
+
+	return results
+end
+
+---@return boolean
+M._toggle_state_with_text = function()
 	local lnum = vim.api.nvim_win_get_cursor(0)[1]
 	local line = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1]
-	return static.config.parse(line)
-end
 
--- ~ search_all
----@param map_items (fun(items: todo.TelescopeSearchItem[]): todo.TelescopeSearchItem[]) | nil
-local function search_all(map_items)
-	find(static.config.root_dir(), static.config.rg_pattern, false, function(todos)
-		local items = {}
-		core.lua.table.each(todos, function(_, todo)
-			table.insert(items, {
-				label = todo.content,
-				todo = todo,
-			})
-		end)
-
-		if map_items then
-			items = map_items(items)
+	if line:find("@end") then
+		local space, todo = line:match("^([%s]*)- %[.*%] (.+) @start%(.*%).*$")
+		if not todo then
+			return false
 		end
 
-		if #items == 0 then
-			vim.notify("no todo found", vim.log.levels.INFO, {
-				title = "todo.nvim",
-			})
-			return
-		end
-		search.telescope_search(items)
-	end, on_err)
-end
+		vim.api.nvim_buf_set_lines(0, lnum - 1, lnum, false, {
+			string.format("%s- %s", space, todo),
+		})
+		return true
+	end
 
--- ~ search_upstream
----@param map_items (fun(items: todo.TelescopeSearchItem[]): todo.TelescopeSearchItem[]) | nil
-local search_upstream = function(map_items)
-	local todo = get_cur_todo()
+	if line:find("@start") then
+		local space, todo, start_time = line:match("^([%s]*)- %[.*%] (.+) @start%((.+)%)$")
+		if not todo or not start_time then
+			return false
+		end
+
+		local start_timestamp = require("omega").get_timestamp(start_time)
+		local end_timestamp = require("omega").get_timestamp()
+
+		local duration = require("omega").get_human_readable_duration(start_timestamp, end_timestamp)
+
+		vim.api.nvim_buf_set_lines(0, lnum - 1, lnum, false, {
+			string.format(
+				"%s- [x] %s @start(%s) @end(%s) @last(%s)",
+				space,
+				todo,
+				start_time,
+				os.date("%Y-%m-%d %H:%M:%S"),
+				duration
+			),
+		})
+		return true
+	end
+
+	local space, todo = line:match("^([%s]*)- (.+)$")
 	if not todo then
-		vim.notify("not a valid todo", vim.log.levels.WARN, {
-			title = "todo.nvim",
-		})
-		return
-	end
-	if #todo.dependencies == 0 then
-		vim.notify("no upstream todo found", vim.log.levels.INFO, {
-			title = "todo.nvim",
-		})
-		return
+		return false
 	end
 
-	find(static.config.root_dir(), static.config.rg_pattern, false, function(todos)
-		local items = {}
-		core.lua.list.each(todo.dependencies, function(dep)
-			local target = todos[dep]
-			if not target then
-				return
-			end
-
-			table.insert(items, {
-				label = target.content,
-				todo = target,
-			})
-		end)
-
-		if map_items then
-			items = map_items(items)
-		end
-
-		if #items == 0 then
-			vim.notify("no upstream todo found", vim.log.levels.INFO, {
-				title = "todo.nvim",
-			})
-			return
-		end
-
-		search.telescope_search(items)
-	end, on_err)
+	vim.api.nvim_buf_set_lines(0, lnum - 1, lnum, false, {
+		string.format("%s- [ ] %s @start(%s)", space, todo, os.date("%Y-%m-%d %H:%M:%S")),
+	})
+	return true
 end
 
--- ~ search_downstream
----@param map_items (fun(items: todo.TelescopeSearchItem[]): todo.TelescopeSearchItem[]) | nil
-local search_downstream = function(map_items)
-	local todo = get_cur_todo()
-	if not todo then
-		vim.notify("not a valid todo", vim.log.levels.WARN, {
-			title = "todo.nvim",
-		})
-		return
-	end
-
-	find(static.config.root_dir(), static.config.rg_pattern, false, function(todos)
-		local items = {}
-		core.lua.table.each(todos, function(_, x)
-			if not core.lua.list.includes(x.dependencies, function(y)
-				return y == todo.id
-			end) then
-				return
-			end
-
-			table.insert(items, {
-				label = x.content,
-				todo = x,
-			})
-		end)
-
-		if map_items then
-			items = map_items(items)
-		end
-
-		if #items == 0 then
-			vim.notify("no downstream todo found", vim.log.levels.INFO, {
-				title = "todo.nvim",
-			})
-			return
-		end
-
-		search.telescope_search(items)
-	end, on_err)
+M.store = function(file_path)
+	local info = {
+		signs = M._signs,
+		id_count = M._id_count,
+	}
+	local text = vim.json.encode(info)
+	vim.fn.writefile({ text }, file_path)
 end
 
-return {
-	setup = setup,
-	get_cur_todo = get_cur_todo,
-	search_all = search_all,
-	search_upstream = search_upstream,
-	search_downstream = search_downstream,
-}
+M.restore = function(file_path)
+	local text = vim.fn.readfile(file_path)[1]
+	local info = vim.json.decode(text)
+	M._signs = info.signs or {}
+	M._id_count = info.id_count or 0
+end
+
+M.init()
+
+return M
